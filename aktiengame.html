@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Trading Simulator 2.0</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css?family=Inter:400,600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #181c22;
+      --bg2: #23272f;
+      --text: #e0e0e0;
+      --accent: #4caf50;
+      --danger: #e53935;
+      --input-bg: #23272f;
+      --input-text: #e0e0e0;
+      --border: #333;
+      --chart-grid: #333;
+      --chart-label: #aaa;
+      --chart-point: #fff;
+      --sidebar: #20242b;
+      --news: #23272f;
+      --shadow: 0 2px 16px #0005;
+    }
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 260px;
+      background: var(--sidebar);
+      padding: 24px 0 0 0;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+    }
+    .sidebar h3 {
+      margin: 0 0 12px 0;
+      font-size: 1.1em;
+      color: var(--accent);
+      letter-spacing: 1px;
+    }
+    .asset-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 90%;
+    }
+    .asset-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: var(--bg2);
+      border: 2px solid transparent;
+      transition: border 0.2s, background 0.2s;
+      font-size: 1.08em;
+    }
+    .asset-item.selected {
+      border: 2px solid var(--accent);
+      background: #263238;
+    }
+    .asset-icon {
+      font-size: 1.3em;
+    }
+    .news-feed {
+      background: var(--news);
+      border-radius: 10px;
+      padding: 10px 12px;
+      width: 90%;
+      min-height: 80px;
+      box-shadow: 0 1px 8px #0002;
+      font-size: 0.98em;
+      color: #ffd54f;
+      margin-bottom: 24px;
+    }
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 32px 32px 0 32px;
+      min-width: 0;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .balance {
+      font-size: 1.3em;
+      color: var(--accent);
+      font-weight: 600;
+      letter-spacing: 1px;
+    }
+    .mini-balance-chart {
+      width: 120px;
+      height: 32px;
+      margin-left: 18px;
+      vertical-align: middle;
+    }
+    .mode-toggle button {
+      background: var(--bg2);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      border-radius: 4px;
+      padding: 5px 14px;
+      font-size: 1em;
+      cursor: pointer;
+      margin-left: 6px;
+    }
+    .mode-toggle button.active {
+      background: var(--accent);
+      color: var(--bg2);
+    }
+    .chart-card {
+      background: var(--bg2);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 18px 18px 10px 18px;
+      margin-bottom: 18px;
+      position: relative;
+    }
+    #chart {
+      width: 100%;
+      height: 260px;
+      display: block;
+      background: var(--bg);
+      border-radius: 8px;
+      cursor: crosshair;
+    }
+    .order-panel {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .order-panel label {
+      margin-right: 8px;
+      font-weight: 500;
+    }
+    .order-panel input, .order-panel select {
+      margin-right: 12px;
+      padding: 7px;
+      border-radius: 4px;
+      border: none;
+      background: var(--input-bg);
+      color: var(--input-text);
+      font-size: 1em;
+    }
+    .order-panel input[type=range] { width: 100px; }
+    .order-panel button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 18px;
+      font-size: 1.08em;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-weight: 600;
+    }
+    .order-panel button.sell { background: var(--danger); }
+    .order-panel button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .slider-value { display: inline-block; width: 40px; text-align: right; color: var(--accent); font-weight: bold; }
+    .tp-sl {
+      margin-bottom: 8px;
+      color: #ffd54f;
+      font-size: 1.05em;
+    }
+    .positions-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 16px;
+      font-size: 1em;
+      background: var(--bg2);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 8px #0002;
+    }
+    .positions-table th, .positions-table td {
+      padding: 8px 6px;
+      text-align: center;
+    }
+    .positions-table th {
+      background: var(--bg2);
+      color: var(--accent);
+      font-weight: 600;
+      border-bottom: 1px solid var(--border);
+    }
+    .positions-table tr:nth-child(even) { background: var(--bg2); }
+    .positions-table tr:nth-child(odd) { background: var(--bg); }
+    .positions-table td.profit-pos { color: var(--accent); font-weight: 600; }
+    .positions-table td.profit-neg { color: var(--danger); font-weight: 600; }
+    .btn-close {
+      background: var(--danger) !important;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 5px 10px;
+      font-size: 1.1em;
+      cursor: pointer;
+    }
+    .btn-close:hover { background: #b71c1c !important; }
+    .footer {
+      background: var(--bg2);
+      padding: 16px 32px;
+      display: flex;
+      gap: 32px;
+      align-items: flex-start;
+      box-shadow: 0 -2px 16px #0003;
+      border-top-left-radius: 18px;
+      border-top-right-radius: 18px;
+      margin-top: 32px;
+    }
+    .footer-section {
+      flex: 1;
+      min-width: 180px;
+    }
+    .footer-section h4 {
+      margin: 0 0 8px 0;
+      color: var(--accent);
+      font-size: 1.08em;
+      letter-spacing: 1px;
+    }
+    .order-history {
+      font-size: 0.97em;
+      max-height: 90px;
+      overflow-y: auto;
+    }
+    .order-history-entry {
+      margin-bottom: 4px;
+      color: #ffd54f;
+    }
+    .achievements {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .badge {
+      background: #333;
+      color: #ffd54f;
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 0.95em;
+      font-weight: 600;
+      box-shadow: 0 1px 4px #0002;
+    }
+    @media (max-width: 1100px) {
+      .sidebar { width: 180px; }
+      .main { padding: 18px 6px 0 6px; }
+      .footer { padding: 12px 6px; gap: 12px; }
+    }
+    @media (max-width: 800px) {
+      .layout { flex-direction: column; }
+      .sidebar { flex-direction: row; width: 100%; padding: 0; gap: 0; }
+      .news-feed, .asset-list { width: 100%; }
+      .main { padding: 8px 2px 0 2px; }
+      .footer { flex-direction: column; gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <div class="sidebar">
+      <div>
+        <h3>Assets</h3>
+        <div class="asset-list" id="assetList"></div>
+      </div>
+      <div>
+        <h3>News</h3>
+        <div class="news-feed" id="newsFeed">Keine News.</div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="header">
+        <div>
+          <span class="balance">Guthaben: <span id="balance">10.000</span> $</span>
+          <canvas class="mini-balance-chart" id="miniBalanceChart"></canvas>
+        </div>
+        <div class="mode-toggle">
+          <button id="darkBtn" class="active" onclick="setMode('dark')">🌙</button>
+          <button id="lightBtn" onclick="setMode('light')">☀️</button>
+        </div>
+      </div>
+      <div class="chart-card">
+        <canvas id="chart"></canvas>
+        <div style="margin-top:8px;font-size:1.1em;">
+          <span id="assetName"></span> | Kurs: <span id="price">...</span> $
+        </div>
+      </div>
+      <form class="order-panel" onsubmit="event.preventDefault(); trade('buy');">
+        <label>Betrag:</label>
+        <input type="range" id="amountRange" min="100" max="10000" value="1000" step="100" oninput="syncAmountInput()">
+        <span class="slider-value" id="amountRangeVal">1000</span> $
+        <input type="number" id="amount" value="1000" min="1" max="100000" style="width:80px" oninput="syncAmountRange()">
+        <label>Hebel:</label>
+        <input type="range" id="leverageRange" min="1" max="20" value="2" step="1" oninput="syncLeverageInput()">
+        <span class="slider-value" id="leverageRangeVal">2</span> x
+        <input type="number" id="leverage" value="2" min="1" max="20" style="width:60px" oninput="syncLeverageRange()">
+        <button type="button" onclick="trade('buy')">Long</button>
+        <button type="button" class="sell" onclick="trade('sell')">Short</button>
+      </form>
+      <div class="tp-sl">
+        Take Profit: <span id="tpVal">10</span>% | Stop Loss: <span id="slVal">10</span>%
+      </div>
+      <table class="positions-table" id="positionsTable">
+        <thead>
+          <tr>
+            <th>Typ</th>
+            <th>Asset</th>
+            <th>Kurs</th>
+            <th>Betrag</th>
+            <th>Hebel</th>
+            <th>TP</th>
+            <th>SL</th>
+            <th>G/V</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="positionsBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <div class="footer">
+    <div class="footer-section">
+      <h4>Order-Historie</h4>
+      <div class="order-history" id="orderHistory"></div>
+    </div>
+    <div class="footer-section">
+      <h4>Achievements</h4>
+      <div class="achievements" id="achievements"></div>
+    </div>
+  </div>
+  <audio id="soundOrder" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae7e2.mp3"></audio>
+  <audio id="soundProfit" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae7e2.mp3"></audio>
+  <audio id="soundLoss" src="https://cdn.pixabay.com/audio/2022/07/26/audio_124bfae7e2.mp3"></audio>
+  <script>
+    // --- Assets mit Trend, Volatilität, Icons ---
+    let balance = 10000;
+    let balanceHistory = [10000];
+    let positions = [];
+    let orderHistory = [];
+    let achievements = [];
+    let stocks = {
+      AAPL: { name: "Apple", price: 200, history: [], trend: 0.0002, vol: 0.012, color: "#90caf9", icon: "🍏" },
+      TSLA: { name: "Tesla", price: 700, history: [], trend: 0.0005, vol: 0.025, color: "#fbc02d", icon: "🚗" },
+      AMZN: { name: "Amazon", price: 3000, history: [], trend: -0.0001, vol: 0.009, color: "#a5d6a7", icon: "📦" },
+      GOOG: { name: "Google", price: 2500, history: [], trend: 0.0001, vol: 0.007, color: "#ce93d8", icon: "🔍" },
+      NFLX: { name: "Netflix", price: 400, history: [], trend: -0.0002, vol: 0.018, color: "#ef9a9a", icon: "🎬" },
+      BTC:  { name: "Bitcoin", price: 60000, history: [], trend: 0.0003, vol: 0.035, color: "#ff9800", icon: "₿" }
+    };
+    let stockKeys = Object.keys(stocks);
+    let currentStock = stockKeys[0];
+    const chartLength = 60;
+    let tp = 10, sl = 10;
+    let newsList = [
+      { asset: "AAPL", text: "Apple bringt neues iPhone raus! +2%", effect: 0.02 },
+      { asset: "TSLA", text: "Tesla meldet Rekordgewinne! +3%", effect: 0.03 },
+      { asset: "AMZN", text: "Amazon enttäuscht bei Quartalszahlen. -2%", effect: -0.02 },
+      { asset: "GOOG", text: "Google investiert in KI. +1.5%", effect: 0.015 },
+      { asset: "NFLX", text: "Netflix verliert Abonnenten. -2.5%", effect: -0.025 },
+      { asset: "BTC", text: "Bitcoin ETF genehmigt! +5%", effect: 0.05 },
+      { asset: "BTC", text: "Bitcoin-Regulierung in den USA. -3%", effect: -0.03 },
+      { asset: "TSLA", text: "Tesla Rückruf wegen Softwarefehler. -1.5%", effect: -0.015 },
+      { asset: "AAPL", text: "Apple startet Aktienrückkauf. +1%", effect: 0.01 },
+      { asset: "AMZN", text: "Amazon Prime Day Rekordumsatz! +2%", effect: 0.02 }
+    ];
+    let lastNews = null;
+
+    // --- Chart zeichnen ---
+    function drawChart() {
+      const canvas = document.getElementById('chart');
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      let history = stocks[currentStock].history;
+      if (history.length < 2) return;
+
+      let min = Math.min(...history);
+      let max = Math.max(...history);
+      if (min === max) { min -= 1; max += 1; }
+      let pad = (max - min) * 0.12;
+      min -= pad; max += pad;
+
+      // Grid
+      ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid');
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        let y = 20 + (canvas.height - 40) * (i / 4);
+        ctx.beginPath();
+        ctx.moveTo(40, y);
+        ctx.lineTo(canvas.width - 10, y);
+        ctx.stroke();
+      }
+      for (let i = 0; i <= 8; i++) {
+        let x = 40 + (canvas.width - 50) * (i / 8);
+        ctx.beginPath();
+        ctx.moveTo(x, 20);
+        ctx.lineTo(x, canvas.height - 20);
+        ctx.stroke();
+      }
+
+      // Y-Achse Labels
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--chart-label');
+      ctx.font = "12px Inter";
+      ctx.textAlign = "right";
+      for (let i = 0; i <= 4; i++) {
+        let y = 20 + (canvas.height - 40) * (i / 4);
+        let val = max - (max - min) * (i / 4);
+        ctx.fillText(val.toFixed(2), 38, y + 4);
+      }
+
+      // Chart-Linie
+      let grad = ctx.createLinearGradient(0, 20, 0, canvas.height - 20);
+      grad.addColorStop(0, stocks[currentStock].color + "ff");
+      grad.addColorStop(1, stocks[currentStock].color + "33");
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      for (let i = 0; i < history.length; i++) {
+        let x = 40 + (canvas.width - 50) * (i / (chartLength - 1));
+        let y = 20 + ((max - history[i]) / (max - min)) * (canvas.height - 40);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+
+      // Letzter Punkt
+      let lastX = 40 + (canvas.width - 50) * ((history.length - 1) / (chartLength - 1));
+      let lastY = 20 + ((max - history[history.length - 1]) / (max - min)) * (canvas.height - 40);
+      ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--chart-point');
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 4, 0, 2 * Math.PI);
+      ctx.fill();
+    }
+
+    // --- Mini-Balance-Chart ---
+    function drawMiniBalanceChart() {
+      const canvas = document.getElementById('miniBalanceChart');
+      const ctx = canvas.getContext('2d');
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      let hist = balanceHistory.slice(-30);
+      if (hist.length < 2) return;
+      let min = Math.min(...hist);
+      let max = Math.max(...hist);
+      if (min === max) { min -= 1; max += 1; }
+      ctx.strokeStyle = "#ffd54f";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < hist.length; i++) {
+        let x = (canvas.width - 8) * (i / (hist.length - 1)) + 4;
+        let y = 4 + ((max - hist[i]) / (max - min)) * (canvas.height - 8);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    // --- News ---
+    function showNews() {
+      if (Math.random() < 0.5) return; // Nicht immer News
+      let n = newsList[Math.floor(Math.random() * newsList.length)];
+      lastNews = n;
+      document.getElementById('newsFeed').innerText = n.text;
+      // Effekt auf Kurs
+      stocks[n.asset].price *= (1 + n.effect);
+      stocks[n.asset].history[stocks[n.asset].history.length - 1] = stocks[n.asset].price;
+      setTimeout(() => { document.getElementById('newsFeed').innerText = "Keine News."; }, 8000);
+    }
+
+    // --- Asset-Liste ---
+    function updateAssetList() {
+      let list = document.getElementById('assetList');
+      list.innerHTML = '';
+      stockKeys.forEach(key => {
+        let s = stocks[key];
+        let div = document.createElement('div');
+        div.className = 'asset-item' + (currentStock === key ? ' selected' : '');
+        div.innerHTML = `<span class="asset-icon">${s.icon}</span> <b>${key}</b>`;
+        div.title = `${s.name} (${key})`;
+        div.onclick = () => { currentStock = key; updateUI(); };
+        list.appendChild(div);
+      });
+    }
+
+    // --- Kursbewegung ---
+    function randomWalk(stock) {
+      let base = stock.price;
+      let trend = stock.trend;
+      let vol = stock.vol;
+      let change = trend + (Math.random() - 0.5) * vol;
+      return Math.max(1, base * (1 + change));
+    }
+    function updatePrices() {
+      for (let key of stockKeys) {
+        let stock = stocks[key];
+        stock.price = randomWalk(stock);
+        stock.history.push(stock.price);
+        if (stock.history.length > chartLength) stock.history.shift();
+      }
+      updateUI();
+    }
+
+    // --- UI ---
+    function updateUI() {
+      document.getElementById('balance').innerText = balance.toFixed(2);
+      document.getElementById('price').innerText = stocks[currentStock].price.toFixed(2);
+      document.getElementById('assetName').innerText = `${stocks[currentStock].icon} ${stocks[currentStock].name}`;
+      document.getElementById('tpVal').innerText = tp.toFixed(2);
+      document.getElementById('slVal').innerText = sl.toFixed(2);
+      drawChart();
+      drawMiniBalanceChart();
+      updatePositionsTable();
+      updateAssetList();
+      updateOrderHistory();
+      updateAchievements();
+      let tradeBtns = document.querySelectorAll('.order-panel button');
+      tradeBtns.forEach(btn => btn.disabled = positions.length >= 5);
+    }
+    function updatePositionsTable() {
+      let tbody = document.getElementById('positionsBody');
+      tbody.innerHTML = "";
+      positions.forEach((pos, i) => {
+        let current = stocks[pos.stock].price;
+        let profit = pos.type === 'buy'
+          ? (current - pos.price) / pos.price * pos.amount * pos.leverage
+          : (pos.price - current) / pos.price * pos.amount * pos.leverage;
+        let profitClass = profit >= 0 ? "profit-pos" : "profit-neg";
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${pos.type === 'buy' ? 'Long' : 'Short'}</td>
+          <td>${stocks[pos.stock].icon} ${pos.stock}</td>
+          <td>${pos.price.toFixed(2)}$</td>
+          <td>${pos.amount}$</td>
+          <td>${pos.leverage}x</td>
+          <td>${pos.tp ? pos.tp + "%" : "-"}</td>
+          <td>${pos.sl ? pos.sl + "%" : "-"}</td>
+          <td class="${profitClass}">${profit.toFixed(2)}$</td>
+          <td><button class="btn-close" onclick="closePosition(${i})">✖</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+    function updateOrderHistory() {
+      let el = document.getElementById('orderHistory');
+      el.innerHTML = '';
+      orderHistory.slice(-8).reverse().forEach(entry => {
+        let color = entry.profit >= 0 ? "#4caf50" : "#e53935";
+        el.innerHTML += `<div class="order-history-entry" style="color:${color}">${entry.time} | ${entry.type} ${entry.asset} | ${entry.profit >= 0 ? "+" : ""}${entry.profit.toFixed(2)}$</div>`;
+      });
+    }
+    function updateAchievements() {
+      let el = document.getElementById('achievements');
+      el.innerHTML = '';
+      achievements.forEach(a => {
+        el.innerHTML += `<span class="badge">${a}</span>`;
+      });
+    }
+
+    // --- Trading ---
+    function trade(type) {
+      if (positions.length >= 5) {
+        alert("Maximal 5 Positionen gleichzeitig!");
+        return;
+      }
+      const stock = currentStock;
+      const price = stocks[stock].price;
+      const amount = parseFloat(document.getElementById('amount').value);
+      const leverage = parseInt(document.getElementById('leverage').value);
+
+      if (isNaN(amount) || amount < 1) {
+        alert("Bitte gültigen Betrag eingeben!");
+        return;
+      }
+      if (amount > balance) {
+        alert("Nicht genug Guthaben!");
+        return;
+      }
+      positions.push({
+        type, stock, price, amount, leverage,
+        tp: tp > 0 ? tp : null,
+        sl: sl > 0 ? sl : null,
+        openTime: Date.now()
+      });
+      balance -= amount;
+      playSound('soundOrder');
+      checkAchievements('trade');
+      updateUI();
+    }
+    function closePosition(idx, closedByTP=false, closedBySL=false) {
+      let pos = positions[idx];
+      let current = stocks[pos.stock].price;
+      let profit = pos.type === 'buy'
+        ? (current - pos.price) / pos.price * pos.amount * pos.leverage
+        : (pos.price - current) / pos.price * pos.amount * pos.leverage;
+      balance += pos.amount + profit;
+      balanceHistory.push(balance);
+      let now = new Date();
+      orderHistory.push({
+        time: now.toLocaleTimeString(),
+        type: pos.type === 'buy' ? 'Long' : 'Short',
+        asset: pos.stock,
+        profit: profit
+      });
+      if (profit >= 0) playSound('soundProfit');
+      else playSound('soundLoss');
+      if (closedByTP) checkAchievements('tp');
+      if (closedBySL) checkAchievements('sl');
+      if (profit >= 1000) checkAchievements('bigwin');
+      if (profit <= -1000) checkAchievements('bigloss');
+      positions.splice(idx, 1);
+      updateUI();
+    }
+    function checkTP_SL() {
+      for (let i = positions.length - 1; i >= 0; i--) {
+        let pos = positions[i];
+        let current = stocks[pos.stock].price;
+        let change = (current - pos.price) / pos.price * 100;
+        if (pos.type === 'sell') change = -change;
+        if (pos.tp && change >= pos.tp) closePosition(i, true, false);
+        else if (pos.sl && change <= -pos.sl) closePosition(i, false, true);
+      }
+    }
+
+    // --- Achievements ---
+    function checkAchievements(type) {
+      if (type === 'trade' && !achievements.includes("Erster Trade")) achievements.push("Erster Trade");
+      if (orderHistory.length >= 10 && !achievements.includes("10 Trades")) achievements.push("10 Trades");
+      if (balance >= 11000 && !achievements.includes("10% Gewinn")) achievements.push("10% Gewinn");
+      if (balance <= 9000 && !achievements.includes("10% Verlust")) achievements.push("10% Verlust");
+      if (type === 'tp' && !achievements.includes("TP erreicht")) achievements.push("TP erreicht");
+      if (type === 'sl' && !achievements.includes("SL ausgelöst")) achievements.push("SL ausgelöst");
+      if (type === 'bigwin' && !achievements.includes("1000$ Gewinn!")) achievements.push("1000$ Gewinn!");
+      if (type === 'bigloss' && !achievements.includes("1000$ Verlust!")) achievements.push("1000$ Verlust!");
+    }
+
+    // --- Sound ---
+    function playSound(id) {
+      let el = document.getElementById(id);
+      if (el) { el.currentTime = 0; el.play(); }
+    }
+
+    // --- Slider Sync ---
+    function syncAmountInput() {
+      let val = document.getElementById('amountRange').value;
+      document.getElementById('amount').value = val;
+      document.getElementById('amountRangeVal').innerText = val;
+    }
+    function syncAmountRange() {
+      let val = document.getElementById('amount').value;
+      if (val < 1) val = 1;
+      if (val > 100000) val = 100000;
+      document.getElementById('amountRange').value = Math.min(val, 10000);
+      document.getElementById('amountRangeVal').innerText = Math.min(val, 10000);
+    }
+    function syncLeverageInput() {
+      let val = document.getElementById('leverageRange').value;
+      document.getElementById('leverage').value = val;
+      document.getElementById('leverageRangeVal').innerText = val;
+    }
+    function syncLeverageRange() {
+      let val = document.getElementById('leverage').value;
+      if (val < 1) val = 1;
+      if (val > 20) val = 20;
+      document.getElementById('leverageRange').value = val;
+      document.getElementById('leverageRangeVal').innerText = val;
+    }
+
+    // --- Dark/Light Mode ---
+    function setMode(mode) {
+      let style = document.querySelector('style');
+      if (mode === 'light') {
+        style.innerHTML = style.innerHTML.replace(/:root\s*{[^}]*}/, `
+        :root {
+          --bg: #f5f5f5;
+          --bg2: #fff;
+          --text: #222;
+          --accent: #388e3c;
+          --danger: #e53935;
+          --input-bg: #fff;
+          --input-text: #222;
+          --border: #bbb;
+          --chart-grid: #ddd;
+          --chart-label: #888;
+          --chart-point: #222;
+          --sidebar: #e0e0e0;
+          --news: #f5f5f5;
+          --shadow: 0 2px 16px #0001;
+        }
+        `);
+        document.getElementById('darkBtn').classList.remove('active');
+        document.getElementById('lightBtn').classList.add('active');
+      } else {
+        style.innerHTML = style.innerHTML.replace(/:root\s*{[^}]*}/, `
+        :root {
+          --bg: #181c22;
+          --bg2: #23272f;
+          --text: #e0e0e0;
+          --accent: #4caf50;
+          --danger: #e53935;
+          --input-bg: #23272f;
+          --input-text: #e0e0e0;
+          --border: #333;
+          --chart-grid: #333;
+          --chart-label: #aaa;
+          --chart-point: #fff;
+          --sidebar: #20242b;
+          --news: #23272f;
+          --shadow: 0 2px 16px #0005;
+        }
+        `);
+        document.getElementById('darkBtn').classList.add('active');
+        document.getElementById('lightBtn').classList.remove('active');
+      }
+      drawChart();
+      drawMiniBalanceChart();
+    }
+
+    // --- Init ---
+    function init() {
+      for (let key of stockKeys) {
+        let arr = [];
+        let price = stocks[key].price;
+        for (let i = 0; i < chartLength; i++) {
+          price = randomWalk(stocks[key]);
+          arr.push(price);
+        }
+        stocks[key].price = price;
+        stocks[key].history = arr;
+      }
+      updateUI();
+    }
+    setInterval(updatePrices, 1000);
+    setInterval(checkTP_SL, 1000);
+    setInterval(() => { balanceHistory.push(balance); drawMiniBalanceChart(); }, 2000);
+    setInterval(showNews, 9000);
+    window.addEventListener('resize', () => { drawChart(); drawMiniBalanceChart(); });
+    init();
+  </script>
+</body>
+</html>
